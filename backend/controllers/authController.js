@@ -1,42 +1,22 @@
-// controllers/authController.js
+// authController.js
+const User = require("../models/user");
+const bcrypt = require("bcrypt");
+const jwt = require("jsonwebtoken");
 
-const User = require('../models/user');
-const bcrypt = require('bcrypt');
+exports.signup = async (req, res) => {
+  const { name, email, password } = req.body;
+  const hashedPassword = await bcrypt.hash(password, 12);
+  const user = new User({ name, email, password: hashedPassword });
+  await user.save();
+  res.status(201).json({ message: "User created" });
+};
 
-async function signup(req, res) {
-  const { name, username, password } = req.body;
-
-  try {
-    const existingUser = await User.findUserByUsername(username);
-    if (existingUser) {
-      return res.status(400).json({ error: 'Username already exists' });
-    }
-
-    const newUser = await User.createUser(name, username, password);
-    res.status(201).json(newUser);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+exports.login = async (req, res) => {
+  const { email, password } = req.body;
+  const user = await User.findOne({ email });
+  if (!user || !(await bcrypt.compare(password, user.password))) {
+    return res.status(401).json({ message: "Invalid credentials" });
   }
-}
-
-async function login(req, res) {
-  const { username, password } = req.body;
-
-  try {
-    const user = await User.findUserByUsername(username);
-    if (!user) {
-      return res.status(401).json({ error: 'Invalid username or password' });
-    }
-
-    const passwordMatch = await bcrypt.compare(password, user.password);
-    if (!passwordMatch) {
-      return res.status(401).json({ error: 'Invalid username or password' });
-    }
-
-    res.json({ message: 'Login successful', user: { id: user.id, username: user.username,name:user.name } });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
-module.exports = { signup, login };
+  const token = jwt.sign({ userId: user._id }, process.env.JWT_SECRET);
+  res.status(200).json({ token });
+};

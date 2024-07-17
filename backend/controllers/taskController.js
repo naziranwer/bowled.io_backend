@@ -1,52 +1,33 @@
-// controllers/taskController.js
+// taskController.js
+const Task = require("../models/task");
 
-const Task = require('../models/task');
+exports.getTasks = async (req, res) => {
+  const tasks = await Task.find({ user: req.userId });
+  res.status(200).json(tasks);
+};
 
-async function createTask(req, res) {
-  const {  taskName } = req.body;
-  const {listId} =req.params;
+exports.createTask = async (req, res) => {
+  const { title, description, dueDate, status } = req.body;
+  const task = new Task({
+    title,
+    description,
+    dueDate,
+    status,
+    user: req.userId,
+  });
+  await task.save();
+  res.status(201).json(task);
+};
 
-  try {
-    const newTask = await Task.createTask(listId, taskName);
-    res.status(201).json(newTask);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
+exports.updateTask = async (req, res) => {
+  const { id } = req.params;
+  const updates = req.body;
+  const task = await Task.findByIdAndUpdate(id, updates, { new: true });
+  res.status(200).json(task);
+};
 
-async function moveTaskToList(req, res) {
-  const { taskId } = req.params;
-  const { newListId } = req.body;
-
-  try {
-    const updatedTask = await Task.updateTaskList(taskId, newListId);
-    res.json(updatedTask);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
-async function completeTask(req, res) {
-  const { taskId } = req.params;
-
-  try {
-    const completedTask = await Task.completeTask(taskId);
-    res.json(completedTask);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
-// Other task controller functions...
-async function getTasksByListId(req, res) {
-  const { listId } = req.params;
-
-  try {
-    const tasks = await Task.getTasksByListId(listId);
-    res.json(tasks);
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-}
-
-module.exports = { createTask, moveTaskToList, completeTask ,getTasksByListId/*, other task controller functions...*/ };
+exports.deleteTask = async (req, res) => {
+  const { id } = req.params;
+  await Task.findByIdAndDelete(id);
+  res.status(204).send();
+};
