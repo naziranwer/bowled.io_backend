@@ -10,7 +10,15 @@ dotenv.config();
 connectDB();
 
 const app = express();
-app.use(cors());
+
+const corsOptions = {
+  origin: process.env.FRONTEND_URL || "*",
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  credentials: true,
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use("/api/auth", authRoutes);
 app.use("/api/tasks", taskRoutes);
